@@ -1,0 +1,15 @@
+## Deploy on Railway
+1. Push these files to a GitHub repository.
+2. On Railway: New Project → Deploy from GitHub repo.
+3. Add Environment Variables:
+   - BOT_TOKEN
+   - API_ID
+   - API_HASH
+   - SESSION = search_session
+   - ALLOWED_USER_ID = 567809992
+4. Click Deploy.
+
+### Session file
+First Telethon run needs login to create `search_session.session`:
+- Run locally once, login with your phone number.
+- Upload the generated `search_session.session` file to the repo (private) or use a Railway volume.
