@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: nudsie-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python keepalive.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        value: ضع_التوكن_هنا
+      - key: API_ID
+        value: "123456"
+      - key: API_HASH
+        value: "abcdef0123456789abcdef0123456789"
+      - key: TELETHON_SESSION
+        value: search_session.session
+      - key: SEARCH_LIMIT
+        value: "60"
+      - key: ADMIN_IDS
+        value: "567809992"
+      - key: KEYWORDS_INCLUDE
+        value: "سعودي, خليجي, خليجية, سعوديات, كوميدي, فخم, حصري, حصريات, تعرض, عرض"
+      - key: KEYWORDS_EXCLUDE
+        value: "اخبار, رياضة"
+      - key: PORT
+        value: "10000"
