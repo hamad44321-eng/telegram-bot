@@ -15,7 +15,6 @@ def health():
     return "ok"
 
 def run_bot():
-    # يشغّل bot.py في نفس المجلد
     subprocess.Popen(["python", "bot.py"]).wait()
 
 if __name__ == "__main__":
