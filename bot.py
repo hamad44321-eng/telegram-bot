@@ -1,44 +1,31 @@
-# bot.py  (Aiogram v3)
+# --- أعلى الملف ---
 import os
-import asyncio
-import logging
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message
+from aiogram import Router, types, Bot
 from aiogram.filters import Command
 
-logging.basicConfig(level=logging.INFO)
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_IDS = set(filter(None, os.getenv("ADMIN_IDS", "").split(",")))  # مثال: "12345,67890"
 
-if not TOKEN:
-    raise SystemExit("Missing TELEGRAM_BOT_TOKEN env var")
+webhook_router = Router()
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+@webhook_router.message(Command("webhook_off"))
+async def webhook_off(message: types.Message, bot: Bot):
+    # السماح فقط للمالك
+    if ADMIN_IDS and str(message.from_user.id) not in ADMIN_IDS:
+        return await message.answer("❌ غير مصرح.")
 
-@dp.message(Command("start"))
-async def cmd_start(m: Message):
-    await m.answer(
-        "👋 Hi! I’m alive on Render.\n"
-        "Try: /ping\n"
-        "Bot: @Nudsie_in_bot"
-    )
+    # مسح الويبهوك + حذف الرسائل المعلقة
+    await bot.delete_webhook(drop_pending_updates=True)
+    await message.answer("✅ تم حذف الـ Webhook. الآن البوت يعمل بالـ polling.")
 
-@dp.message(Command("ping"))
-async def cmd_ping(m: Message):
-    await m.answer("pong ✅")
+@webhook_router.message(Command("webhook_status"))
+async def webhook_status(message: types.Message, bot: Bot):
+    info = await bot.get_webhook_info()
+    if info.url:
+        await message.answer(f"🔗 Webhook مفعل:\n{info.url}")
+    else:
+        await message.answer("ℹ️ لا يوجد Webhook مفعل (Polling).")
 
-@dp.message(F.text)
-async def echo(m: Message):
-    await m.answer(m.text)
-
-async def main():
-    logging.info("🚀 Starting long polling…")
-    me = await bot.get_me()
-    logging.info("🤖 Logged in as @%s (id=%s)", me.username, me.id)
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot stopped.")
+# --- تحت إنشاء الـ Dispatcher/Router الأساسي عندك ---
+# مثال: dp.include_router(webhook_router)
+# إذا عندك Router اسمه main_router، لا مشكلة، المهم تضيف:
+dp.include_router(webhook_router)
