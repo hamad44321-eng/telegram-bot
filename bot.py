@@ -1,16 +1,44 @@
-import telebot
+# bot.py  (Aiogram v3)
+import os
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, F
+from aiogram.types import Message
+from aiogram.filters import Command
 
-# ضع التوكن الخاص بك هنا
-TOKEN = "8217632244:AAH30Ytf-7koU93ni32WoNAKiy3h08lQXw0"
-bot = telebot.TeleBot(TOKEN)
+logging.basicConfig(level=logging.INFO)
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, "أهلاً! البوت شغال ✅")
+if not TOKEN:
+    raise SystemExit("Missing TELEGRAM_BOT_TOKEN env var")
 
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    bot.reply_to(message, message.text)
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 
-print("البوت يعمل الآن...")
-bot.polling()
+@dp.message(Command("start"))
+async def cmd_start(m: Message):
+    await m.answer(
+        "👋 Hi! I’m alive on Render.\n"
+        "Try: /ping\n"
+        "Bot: @Nudsie_in_bot"
+    )
+
+@dp.message(Command("ping"))
+async def cmd_ping(m: Message):
+    await m.answer("pong ✅")
+
+@dp.message(F.text)
+async def echo(m: Message):
+    await m.answer(m.text)
+
+async def main():
+    logging.info("🚀 Starting long polling…")
+    me = await bot.get_me()
+    logging.info("🤖 Logged in as @%s (id=%s)", me.username, me.id)
+    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except (KeyboardInterrupt, SystemExit):
+        logging.info("Bot stopped.")
