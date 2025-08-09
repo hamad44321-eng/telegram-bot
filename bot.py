@@ -6,36 +6,42 @@ from typing import Set
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.filters import Command
 from aiogram.filters.command import CommandObject
+from aiogram.client.default import DefaultBotProperties  # <-- مهم لـ Aiogram 3.x
 
-# --- إعداد اللوج ---
+# ---------- اللوج ----------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s:%(name)s:%(message)s",
 )
 log = logging.getLogger(__name__)
 
-# --- متغيرات البيئة ---
+# ---------- متغيرات البيئة ----------
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("Env TELEGRAM_BOT_TOKEN is missing")
 
-# ADMIN_IDS = "12345,67890"
 def parse_admins(raw: str | None) -> Set[str]:
     if not raw:
         return set()
     return {x.strip() for x in raw.split(",") if x.strip().isdigit()}
 
+# مثال: ADMIN_IDS="12345,67890"
 ADMIN_IDS: Set[str] = parse_admins(os.getenv("ADMIN_IDS"))
 
-# --- راوتر عام للأوامر الأساسية ---
+def is_admin(user_id: int) -> bool:
+    # إن كانت ADMIN_IDS فارغة فاسمح مؤقتًا للجميع (مفيد للتجربة)
+    return (not ADMIN_IDS) or (str(user_id) in ADMIN_IDS)
+
+# ---------- راوتر أساسي ----------
 main_router = Router()
 
 @main_router.message(Command("start"))
 async def cmd_start(message: types.Message):
+    me = await message.bot.me()
     text = (
         "👋 Hi! I’m alive on Render.\n"
         "Try: /ping\n"
-        f"Bot: @{(await message.bot.me()).username}"
+        f"Bot: @{me.username}"
     )
     await message.answer(text)
 
@@ -43,12 +49,8 @@ async def cmd_start(message: types.Message):
 async def cmd_ping(message: types.Message):
     await message.answer("pong ✅")
 
-# --- أوامر إدارة الويبهوك ---
+# ---------- إدارة الويبهوك ----------
 webhook_router = Router()
-
-def _is_admin(uid: int) -> bool:
-    # لو ADMIN_IDS فاضية، اسمح للجميع (للتجربة). فضّل تضيف آي‑ديك.
-    return (not ADMIN_IDS) or (str(uid) in ADMIN_IDS)
 
 @webhook_router.message(Command("webhook_status"))
 async def webhook_status(message: types.Message, bot: Bot):
@@ -56,18 +58,18 @@ async def webhook_status(message: types.Message, bot: Bot):
     if info.url:
         await message.answer(f"🔗 Webhook مفعل:\n{info.url}")
     else:
-        await message.answer("ℹ️ لا يوجد Webhook (Polling).")
+        await message.answer("ℹ️ لا يوجد Webhook (يعمل بالـ polling).")
 
 @webhook_router.message(Command("webhook_off"))
 async def webhook_off(message: types.Message, bot: Bot):
-    if not _is_admin(message.from_user.id):
+    if not is_admin(message.from_user.id):
         return await message.answer("❌ غير مصرح.")
     await bot.delete_webhook(drop_pending_updates=True)
     await message.answer("✅ تم حذف الـ Webhook. يعمل الآن بالـ polling.")
 
 @webhook_router.message(Command("webhook_on"))
 async def webhook_on(message: types.Message, bot: Bot, command: CommandObject):
-    if not _is_admin(message.from_user.id):
+    if not is_admin(message.from_user.id):
         return await message.answer("❌ غير مصرح.")
     if not command.args:
         return await message.answer(
@@ -77,9 +79,10 @@ async def webhook_on(message: types.Message, bot: Bot, command: CommandObject):
     await bot.set_webhook(url, drop_pending_updates=True)
     await message.answer(f"✅ تم تفعيل Webhook:\n{url}")
 
-# --- تشغيل البوت بالـ polling ---
+# ---------- التشغيل ----------
 async def main():
-    bot = Bot(TOKEN, parse_mode="HTML")
+    # استخدام DefaultBotProperties بدل parse_mode المباشر (متوافق مع Aiogram >= 3.7)
+    bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
     dp = Dispatcher()
 
     # ضمّن الراوترات
@@ -87,7 +90,8 @@ async def main():
     dp.include_router(webhook_router)
 
     log.info("🚀 Starting long polling…")
-    # احذف أي ويبهوك عالق قبل البدء
+
+    # تأكد من إلغاء أي Webhook قبل بدء polling
     await bot.delete_webhook(drop_pending_updates=True)
 
     me = await bot.me()
@@ -97,3 +101,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+   
