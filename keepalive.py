@@ -15,7 +15,8 @@ def health():
     return "ok"
 
 def run_bot():
-    subprocess.Popen(["python", "bot.py"]).wait()
+    # -u -> unbuffered so logs show up live on Render
+    subprocess.Popen(["python", "-u", "bot.py"])
 
 if __name__ == "__main__":
     threading.Thread(target=run_bot, daemon=True).start()
