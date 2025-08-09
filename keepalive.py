@@ -1,5 +1,6 @@
-# keepalive.py
-import os, threading, subprocess
+import os
+import threading
+import subprocess
 from fastapi import FastAPI
 import uvicorn
 
@@ -14,9 +15,8 @@ def health():
     return "ok"
 
 def run_bot():
-    print("🔧 Spawning bot.py …")
-    # show bot stdout/stderr in Render logs:
-    subprocess.Popen(["python", "bot.py"])
+    # يشغّل bot.py في نفس المجلد
+    subprocess.Popen(["python", "bot.py"]).wait()
 
 if __name__ == "__main__":
     threading.Thread(target=run_bot, daemon=True).start()
