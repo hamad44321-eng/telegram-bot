@@ -1,13 +1,11 @@
-import os
 import asyncio
-from typing import Optional, List
-
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
+import os
+from typing import List, Optional
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
+from fastapi import FastAPI, Query
+from pydantic import BaseModel
 from telethon import TelegramClient, functions
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -17,17 +15,40 @@ SESSION = os.getenv("SESSION", "search_session")
 ALLOWED_USER_ID = int(os.getenv("ALLOWED_USER_ID", "567809992"))
 
 SEARCH_KEYWORDS_AR = [
-    "خليج", "سعود", "كويت", "إمارات", "قطر", "بحرين",
-    "جمال", "مكياج", "ميكب", "ستايل", "موضة", "حصري", "حصريات"
+    "خليج",
+    "سعود",
+    "كويت",
+    "إمارات",
+    "قطر",
+    "بحرين",
+    "جمال",
+    "مكياج",
+    "ميكب",
+    "ستايل",
+    "موضة",
+    "حصري",
+    "حصريات",
 ]
-SEARCH_KEYWORDS_EN = ["gulf", "ksa", "kuwait", "uae", "qatar", "bahrain",
-                      "beauty", "makeup", "style", "fashion", "exclusive"]
+SEARCH_KEYWORDS_EN = [
+    "gulf",
+    "ksa",
+    "kuwait",
+    "uae",
+    "qatar",
+    "bahrain",
+    "beauty",
+    "makeup",
+    "style",
+    "fashion",
+    "exclusive",
+]
 
 app = FastAPI(title="Personal TG Channel Finder")
 tclient = TelegramClient(SESSION, API_ID, API_HASH)
 
 bot = Bot(BOT_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
+
 
 def _match_score(text: str) -> int:
     if not text:
@@ -42,6 +63,7 @@ def _match_score(text: str) -> int:
             score += 1
     return score
 
+
 class ChannelOut(BaseModel):
     title: str
     username: Optional[str] = None
@@ -50,16 +72,21 @@ class ChannelOut(BaseModel):
     invite_link: Optional[str] = None
     score: int = 0
 
+
 @app.on_event("startup")
 async def _startup():
     await tclient.start()
     asyncio.create_task(dp.start_polling(bot))
 
+
 @dp.message(F.text.startswith("/start"))
 async def start(m: types.Message):
     if m.from_user.id != ALLOWED_USER_ID:
         return await m.answer("⛔️ Private bot. Access denied.")
-    await m.answer("Hello Hamad 👋\nUse: /find keyword [country]\nExample: /find جمال السعودية")
+    await m.answer(
+        "Hello Hamad 👋\nUse: /find keyword [country]\nExample: /find جمال السعودية"
+    )
+
 
 @dp.message(F.text.startswith("/find"))
 async def find(m: types.Message):
@@ -85,13 +112,16 @@ async def find(m: types.Message):
         username = ch.get("username")
         members = ch.get("members", "?")
         about = (ch.get("about", "") or "")[:140]
-        join_link = f"https://t.me/{username}" if username else ch.get("invite_link", "")
+        join_link = (
+            f"https://t.me/{username}" if username else ch.get("invite_link", "")
+        )
         lines.append(f"{idx}) <b>{title}</b> — {members} members\n{about}")
         if join_link:
             kb.button(text=f"Join: {title}", url=join_link)
 
     kb.adjust(1)
     await m.answer("\n\n".join(lines), reply_markup=kb.as_markup())
+
 
 async def _search_logic(query: str):
     res = await tclient(functions.contacts.SearchRequest(q=query, limit=80))
@@ -108,16 +138,19 @@ async def _search_logic(query: str):
                 members = None
             text_blob = " ".join([ch.title or "", username or "", about or ""])
             score = _match_score(text_blob)
-            channels.append(ChannelOut(
-                title=ch.title,
-                username=username,
-                members=members,
-                about=about,
-                invite_link=None,
-                score=score
-            ))
+            channels.append(
+                ChannelOut(
+                    title=ch.title,
+                    username=username,
+                    members=members,
+                    about=about,
+                    invite_link=None,
+                    score=score,
+                )
+            )
     channels.sort(key=lambda x: ((x.score or 0), (x.members or 0)), reverse=True)
     return {"results": [c.dict() for c in channels[:20]]}
+
 
 @app.get("/search")
 async def http_search(q: str = Query(..., min_length=2), country: str = ""):
