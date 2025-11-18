@@ -1,21 +1,26 @@
 import os
-import threading
 import subprocess
-from fastapi import FastAPI
+import threading
+
 import uvicorn
+from fastapi import FastAPI
 
 app = FastAPI()
+
 
 @app.get("/")
 def root():
     return {"status": "ok"}
 
+
 @app.get("/healthz")
 def health():
     return "ok"
 
+
 def run_bot():
     subprocess.Popen(["python", "bot.py"]).wait()
+
 
 if __name__ == "__main__":
     threading.Thread(target=run_bot, daemon=True).start()
