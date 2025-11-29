@@ -1,15 +1,8 @@
-name: (disabled) Railway Deploy
-on:
-  workflow_dispatch: {}   # يدوي فقط
-jobs:
-  noop:
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Disabled – we use Render."
-
+name: Deploy to Railway
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch: {}
 
 jobs:
   deploy:
